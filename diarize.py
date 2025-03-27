@@ -258,4 +258,8 @@ with open(f"{os.path.splitext(args.audio)[0]}.txt", "w", encoding="utf-8-sig") a
 with open(f"{os.path.splitext(args.audio)[0]}.srt", "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt)
 
+import json
+with open(f"{os.path.splitext(args.audio)[0]}.json", "w", encoding="utf-8") as json_file:
+    json.dump(ssm, json_file, ensure_ascii=False, indent=4)
+
 cleanup(temp_path)
