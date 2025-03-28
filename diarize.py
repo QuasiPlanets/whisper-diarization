@@ -157,11 +157,14 @@ full_transcript = "".join(segment.text for segment in transcript_segments)
 del whisper_model, whisper_pipeline
 torch.cuda.empty_cache()
 
-# Forced Alignment
-alignment_model, alignment_tokenizer = load_alignment_model(
-    args.device,
-    dtype=torch.float16 if args.device == "cuda" else torch.float32,
-)
+try:
+    alignment_model, alignment_tokenizer = load_alignment_model(
+        args.device,
+        dtype=torch.float16 if args.device == "cuda" else torch.float32,
+    )
+    logging.info("Alignment model loaded successfully.")
+except Exception as e:
+    logging.error(f"Failed to load alignment model: {str(e)}")
 
 emissions, stride = generate_emissions(
     alignment_model,
