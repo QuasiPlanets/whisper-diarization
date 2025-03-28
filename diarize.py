@@ -1,3 +1,9 @@
+#fixes hugginface ModelFilter location
+import huggingface_hub
+if not hasattr(huggingface_hub, 'ModelFilter'):
+    from huggingface_hub.hf_api import ModelFilter
+    huggingface_hub.ModelFilter = ModelFilter
+    
 import argparse
 import logging
 import os
