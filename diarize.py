@@ -1,10 +1,10 @@
-#fixes hugginface ModelFilter location
+# fixes hugginface ModelFilter location
 import huggingface_hub
-try:
-    from huggingface_hub.hf_api import ModelFilter
-except ImportError:
-    from huggingface_hub import ModelFilter    
-    
+# try:
+#     from huggingface_hub.hf_api import ModelFilter
+# except ImportError:
+#     from huggingface_hub import ModelFilter    
+
 import argparse
 import logging
 import os
@@ -101,7 +101,6 @@ language = process_language_arg(args.language, args.model_name)
 
 if args.stemming:
     # Isolate vocals from the rest of the audio
-
     return_code = os.system(
         f'python -m demucs.separate -n htdemucs --two-stems=vocals "{args.audio}" -o temp_outputs --device "{args.device}"'
     )
@@ -122,9 +121,7 @@ if args.stemming:
 else:
     vocal_target = args.audio
 
-
 # Transcribe the audio file
-
 whisper_model = faster_whisper.WhisperModel(
     args.model_name, device=args.device, compute_type=mtypes[args.device]
 )
@@ -153,7 +150,7 @@ else:
 
 full_transcript = "".join(segment.text for segment in transcript_segments)
 
-# clear gpu vram
+# Clear GPU VRAM
 del whisper_model, whisper_pipeline
 torch.cuda.empty_cache()
 
@@ -193,8 +190,7 @@ spans = get_spans(tokens_starred, segments, blank_token)
 
 word_timestamps = postprocess_results(text_starred, spans, stride, scores)
 
-
-# convert audio to mono for NeMo combatibility
+# Convert audio to mono for NeMo compatibility
 ROOT = os.getcwd()
 temp_path = os.path.join(ROOT, "temp_outputs")
 os.makedirs(temp_path, exist_ok=True)
@@ -205,7 +201,6 @@ torchaudio.save(
     channels_first=True,
 )
 
-
 # Initialize NeMo MSDD diarization model
 msdd_model = NeuralDiarizer(cfg=create_config(temp_path)).to(args.device)
 msdd_model.diarize()
@@ -214,8 +209,6 @@ del msdd_model
 torch.cuda.empty_cache()
 
 # Reading timestamps <> Speaker Labels mapping
-
-
 speaker_ts = []
 with open(os.path.join(temp_path, "pred_rttms", "mono_file.rttm"), "r") as f:
     lines = f.readlines()
@@ -228,7 +221,7 @@ with open(os.path.join(temp_path, "pred_rttms", "mono_file.rttm"), "r") as f:
 wsm = get_words_speaker_mapping(word_timestamps, speaker_ts, "start")
 
 if info.language in punct_model_langs:
-    # restoring punctuation in the transcript to help realign the sentences
+    # Restoring punctuation in the transcript to help realign the sentences
     punct_model = PunctuationModel(model="kredor/punctuate-all")
 
     words_list = list(map(lambda x: x["word"], wsm))
@@ -252,7 +245,6 @@ if info.language in punct_model_langs:
             if word.endswith(".."):
                 word = word.rstrip(".")
             word_dict["word"] = word
-
 else:
     logging.warning(
         f"Punctuation restoration is not available for {info.language} language."
@@ -262,15 +254,14 @@ else:
 wsm = get_realigned_ws_mapping_with_punctuation(wsm)
 ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
-#with open(f"{os.path.splitext(args.audio)[0]}.txt", "w", encoding="utf-8-sig") as f:
- #   get_speaker_aware_transcript(ssm, f)
+# with open(f"{os.path.splitext(args.audio)[0]}.txt", "w", encoding="utf-8-sig") as f:
+#     get_speaker_aware_transcript(ssm, f)
 
-#with open(f"{os.path.splitext(args.audio)[0]}.srt", "w", encoding="utf-8-sig") as srt:
- #   write_srt(ssm, srt)
+# with open(f"{os.path.splitext(args.audio)[0]}.srt", "w", encoding="utf-8-sig") as srt:
+#     write_srt(ssm, srt)
 
 import json
 with open(f"{os.path.splitext(args.audio)[0]}.json", "w", encoding="utf-8") as json_file:
     json.dump(ssm, json_file, ensure_ascii=False, indent=4)
-
 
 cleanup(temp_path)
