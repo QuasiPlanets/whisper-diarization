@@ -161,7 +161,9 @@ torchaudio.save(mono_file, torch.from_numpy(audio_waveform).unsqueeze(0).float()
 
 # Diarize with NeMo
 logger.info("Performing diarization with NeMo...")
-msdd_model = NeuralDiarizer(cfg=create_config(temp_path)).to(args.device)
+diarizer_config = create_config(temp_path)
+diarizer_config.diarizer.clustering.parameters.max_num_speakers = 3  # Allow up to 3 speakers
+msdd_model = NeuralDiarizer(cfg=diarizer_config).to(args.device)
 msdd_model.diarize()
 del msdd_model
 torch.cuda.empty_cache()
@@ -172,9 +174,9 @@ rttm_file = os.path.join(temp_path, "pred_rttms", "mono_file.rttm")
 with open(rttm_file, "r") as f:
     for line in f:
         parts = line.split()
-        s = int(float(parts[5]) * 1000)
-        e = s + int(float(parts[8]) * 1000)
-        speaker = int(parts[11].split("_")[-1])
+        s = int(float(parts[5]) * 1000)  # Start time in ms
+        e = s + int(float(parts[8]) * 1000)  # End time in ms
+        speaker = int(parts[11].split("_")[-1])  # Extract speaker number
         speaker_ts.append([s, e, speaker])
 
 # Map words to speakers
@@ -203,9 +205,9 @@ ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 adjusted_ssm = [
     {
         "text": seg["text"],
-        "start": seg["start_time"] / 1000,  # Convert ms to seconds
-        "end": seg["end_time"] / 1000,      # Convert ms to seconds
-        "speaker": f"Speaker_{seg['speaker']}"
+        "start_time": seg["start_time"],  # Keep in milliseconds
+        "end_time": seg["end_time"],      # Keep in milliseconds
+        "speaker": f"Speaker {seg['speaker']}"  # Match process_speakers.py format
     }
     for seg in ssm
 ]
